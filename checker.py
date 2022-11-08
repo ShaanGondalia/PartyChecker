@@ -1,6 +1,6 @@
 import requests
-import json
 import pandas as pd
+import argparse
 from secrets import BEARER_TOKEN
 
 
@@ -16,7 +16,6 @@ class Checker():
         ids = self._lookup_user_ids(username)
         tweets = self._retrieve_tweets(ids[username.lower()])
         # TODO: Calculate summary statistics to check party affiliation
-
 
         print(tweets.head(10))
 
@@ -69,7 +68,10 @@ class Checker():
         response = requests.request("GET", url, auth=self._bearer_oauth, params=params)
         if response.status_code != 200:
             raise Exception(f"Request returned an error: {response.status_code} {response.text}")
-        return response.json()
+        response_json = response.json()
+        if 'errors' in response_json:
+            raise Exception("Sorry, that profile is private or banned.")
+        return response_json
 
     def _bearer_oauth(self, request):
         request.headers["Authorization"] = f"Bearer {BEARER_TOKEN}"
@@ -77,10 +79,13 @@ class Checker():
         return request
 
 
-def main():
+def main(username):
     checker = Checker()
-    checker.check("twitter")
+    checker.check(username)
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser(description="Check a Twitter user's party affiliation")
+    parser.add_argument('username', help='The twitter user you want to check')
+    args = parser.parse_args()
+    main(args.username)
