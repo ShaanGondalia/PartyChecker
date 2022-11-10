@@ -11,8 +11,6 @@ class Visualizer():
 
     PARTY_KEY = 'party'
     TOKEN_KEY = 'tokens_no_stop'
-    TOKEN_WITH_STOP_KEY = 'tidy_tweet_tokens'
-    TIDY_KEY = 'tidy_tweet'
     PARTY_COLORS = {'All': 'purple', 'Democrat': 'blue', 'Republican': 'red'}
     FREQ_KEY = 'frequency'
     WORD_KEY = 'word'
@@ -56,7 +54,7 @@ class Visualizer():
         print("Filtering tweets that don't contain given words:")
         mask = [False] * len(df.index)
         for w in tqdm(words):
-            mask = mask | df[self.TOKEN_WITH_STOP_KEY].apply(lambda x: w in x)
+            mask = mask | df[self.TOKEN_KEY].apply(lambda x: w in x)
         return df[mask]
 
     def _get_word_frequency(self, words, df):
@@ -64,7 +62,7 @@ class Visualizer():
         dic = {}
         print("Generating word frequencies:")
         for w in tqdm(words):
-            dic[w] = df[self.TOKEN_WITH_STOP_KEY].apply(lambda x: x.count(w)).sum()
+            dic[w] = df[self.TOKEN_KEY].apply(lambda x: x.count(w)).sum()
         return dic
 
     def _plot_top_ten_words(self, word_freqs, ylabel='Word'):
@@ -81,8 +79,7 @@ class Visualizer():
 
     def _visualize_party_words(self, df, party='All'):
         """ Visualizes all words used by party members """
-        tokens = np.concatenate(df[self.TOKEN_KEY
-].values)
+        tokens = np.concatenate(df[self.TOKEN_KEY].values)
         self._create_word_cloud(tokens, party)
         self._visualize_value_counts(tokens, party)
 
