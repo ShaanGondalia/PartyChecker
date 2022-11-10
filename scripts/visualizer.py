@@ -15,6 +15,9 @@ class Visualizer():
     FREQ_KEY = 'frequency'
     WORD_KEY = 'word'
 
+    def __init__(self):
+        tqdm.pandas()
+
     def visualize_words(self, df):
         dems = df[df[self.PARTY_KEY] == 'D']
         reps = df[df[self.PARTY_KEY] == 'R']
@@ -35,13 +38,14 @@ class Visualizer():
         """
         cleaned_words = self._process_words(words)
         df_words = self._filter_words(cleaned_words, df)
+        print(df_words.groupby(self.PARTY_KEY)['tweet'].count(
+        ) / df.groupby(self.PARTY_KEY)['tweet'].count())
         # Frequency of words in df
-        freq_map = self._get_word_frequency(cleaned_words, df_words)
-        word_freqs = pd.DataFrame(
-            list(zip(freq_map.keys(), freq_map.values())), columns=[self.WORD_KEY, self.FREQ_KEY])
+        freqs = self._get_word_frequency(cleaned_words, df_words)
 
-        self._plot_top_ten_words(word_freqs, ylabel=f'{word_type} Word')
+        self._plot_top_n_words(freqs, ylabel=f'{word_type} Word')
         self._plot_count_by_party(df_words, ylabel=f'{word_type} Word Counts')
+        self._plot_prop_by_party(df, df_words, ylabel=f'{word_type} Word Proportions')
 
         plt.show()
 
@@ -59,21 +63,39 @@ class Visualizer():
 
     def _get_word_frequency(self, words, df):
         """ Gets the frequency of words in df for every word in word_arr """
-        dic = {}
         print("Generating word frequencies:")
-        for w in tqdm(words):
-            dic[w] = df[self.TOKEN_KEY].apply(lambda x: x.count(w)).sum()
-        return dic
+        freqs = words.to_frame(name=self.WORD_KEY)
+        freqs['Democrat'] = words.progress_apply(
+            lambda word: self._freq_of_word_by_party(word, df, 'D'))
+        freqs['Republican'] = words.progress_apply(
+            lambda word: self._freq_of_word_by_party(word, df, 'R'))
+        freqs['Total'] = freqs['Democrat'] + freqs['Republican']
+        return freqs
 
-    def _plot_top_ten_words(self, word_freqs, ylabel='Word'):
-        top_ten = word_freqs.nlargest(10, self.FREQ_KEY)
-        p = sns.catplot(data=top_ten, x=self.FREQ_KEY, y=self.WORD_KEY, kind='bar', color='gray')
-        p.set(ylabel=ylabel)
+    def _freq_of_word_by_party(self, word, df, party):
+        """ Gets frequency of word by party """
+        party_mask = df[self.PARTY_KEY] == party
+        return df[party_mask][self.TOKEN_KEY].apply(lambda x: x.count(word)).sum()
+
+    def _plot_top_n_words(self, freqs, n=10, ylabel='Word'):
+        top = freqs.nlargest(n, 'Total')
+        top = top.set_index(self.WORD_KEY)
+        top[['Democrat', 'Republican']].plot.barh(stacked=True, color=['blue', 'red', 'purple'])
+        plt.ylabel(ylabel)
 
     def _plot_count_by_party(self, df, ylabel='Tweet Count'):
         """ Plots the count of tweets in the df by party """
         counts_party = df.groupby(self.PARTY_KEY)['tweet'].count().reset_index()
         p = sns.catplot(data=counts_party, x=self.PARTY_KEY, y='tweet', kind='bar', color='gray',
+                        palette=sns.color_palette(['blue', 'red']))
+        p.set_axis_labels('Party', ylabel)
+
+    def _plot_prop_by_party(self, df, df_words, ylabel='Tweet Proportion'):
+        """ Plots the proportion of tweets between two dataframes by party """
+        counts_party = df_words.groupby(self.PARTY_KEY)['tweet'].count().reset_index()
+        total_counts_party = df.groupby(self.PARTY_KEY)['tweet'].count().reset_index()
+        counts_party['props'] = counts_party['tweet'].divide(total_counts_party['tweet'])
+        p = sns.catplot(data=counts_party, x=self.PARTY_KEY, y='props', kind='bar', color='gray',
                         palette=sns.color_palette(['blue', 'red']))
         p.set_axis_labels('Party', ylabel)
 
