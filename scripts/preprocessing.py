@@ -1,11 +1,9 @@
-import warnings
 import pandas as pd
 import numpy as np
 import re
 from gensim.utils import simple_preprocess
 import nltk
 from nltk.corpus import stopwords
-# warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 
 class PreProcessor():
