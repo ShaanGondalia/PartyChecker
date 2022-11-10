@@ -37,17 +37,38 @@ class Visualizer():
             word_type: Qualifier for the word type used in visualizations
         """
         cleaned_words = self._process_words(words)
-        df_words = self._filter_words(cleaned_words, df)
-        print(df_words.groupby(self.PARTY_KEY)['tweet'].count(
-        ) / df.groupby(self.PARTY_KEY)['tweet'].count())
+        df_filtered = self._filter_words(cleaned_words, df)
+
+        self._summary_statistics(df, cleaned_words, df_filtered, word_type)
+
         # Frequency of words in df
-        freqs = self._get_word_frequency(cleaned_words, df_words)
+        freqs = self._get_word_frequency(cleaned_words, df_filtered)
 
         self._plot_top_n_words(freqs, ylabel=f'{word_type} Word')
-        self._plot_count_by_party(df_words, ylabel=f'{word_type} Word Counts')
-        self._plot_prop_by_party(df, df_words, ylabel=f'{word_type} Word Proportions')
+        self._plot_count_by_party(df_filtered, ylabel=f'{word_type} Word Counts')
+        self._plot_prop_by_party(df, df_filtered, ylabel=f'{word_type} Word Tweet Proportions')
 
         plt.show()
+
+    def _summary_statistics(self, df, words, df_filtered, word_type):
+        """ Generates some summary statistics about the dataset """
+        count_filtered = df_filtered.groupby(self.PARTY_KEY)['tweet'].count()
+        count_df = df.groupby(self.PARTY_KEY)['tweet'].count()
+        print(f"Percentage of tweets with {word_type} words:")
+        print(count_filtered/count_df)
+        self._party_word_proportion(df, words, 'D', word_type)
+        self._party_word_proportion(df, words, 'R', word_type)
+
+    def _party_word_proportion(self, df, words, party, word_type):
+        """ Generates the proportion of words in all words in tweets given party """
+        party_mask = df['party'] == party
+
+        #for w in tqdm(words):
+        #    count += df[party_mask][self.TOKEN_KEY].apply(lambda x: x.count(w)).sum()
+        count = words.progress_apply(lambda w: df[party_mask][self.TOKEN_KEY].apply(lambda x: x.count(w)).sum()).sum()
+        total = df[party_mask][self.TOKEN_KEY].apply(lambda x: len(x)).sum()
+        prop = count / total
+        print(f'Proportion of {word_type} words in {party} tweets: {prop}')
 
     def _process_words(self, words):
         """ Remove non-alphanumeric words """
