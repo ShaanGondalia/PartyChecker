@@ -2,3 +2,5 @@ secrets.py
 __pycache__
 congress-tweets.csv
 .ipynb_checkpoints
+*.h5
+*.csv
