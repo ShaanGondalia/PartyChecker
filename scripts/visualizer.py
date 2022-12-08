@@ -77,9 +77,7 @@ class Visualizer():
     def _filter_words(self, words, df):
         """ Returns a new df with entries that contain a word in words """
         print("Filtering tweets that don't contain given words:")
-        mask = [False] * len(df.index)
-        for w in tqdm(words):
-            mask = mask | df[self.TOKEN_KEY].apply(lambda x: w in x)
+        mask = df[self.TOKEN_KEY].progress_apply(lambda x: len(set(words) & set(x)) != 0)
         return df[mask]
 
     def _get_word_frequency(self, words, df):

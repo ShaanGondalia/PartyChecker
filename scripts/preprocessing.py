@@ -26,7 +26,7 @@ class PreProcessor():
         # TOKENIZATION
         print('Tokenizing Tweets')
         df['tidy_tweet_tokens'] = df[self.TIDY_TWEET].progress_apply(
-            lambda tweet: simple_preprocess(tweet, deacc=True))
+            lambda tweet: simple_preprocess(tweet, deacc=True, min_len=1))
         # REMOVE STOPWORDS
         print('Removing stop words from Tweets')
         df['tokens_no_stop'] = self._remove_stopwords(df['tidy_tweet_tokens'])
